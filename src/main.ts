@@ -21,23 +21,7 @@ app.append(canvas);
 
 //Step 2
 let isDrawing = false;
-const ctx = canvas.getContext("2d");
-
-canvas.addEventListener("mousedown", () => {
-  isDrawing = true;
-});
-canvas.addEventListener("mouseup", () => {
-  isDrawing = false;
-  canvas.getContext("2d")!.beginPath();
-});
-canvas.addEventListener("mousemove", (e) => {
-  if (!isDrawing) return;
-  ctx?.lineTo(e.offsetX, e.offsetY);
-  ctx?.stroke();
-  ctx?.beginPath();
-  ctx?.moveTo(e.offsetX, e.offsetY);
-});
-
+const empty = 0;
 const lineBreak = document.createElement("br");
 app.append(lineBreak);
 
@@ -46,7 +30,60 @@ clearButton.innerHTML = "Clear";
 const originX = 0;
 const originY = 0;
 clearButton.addEventListener("click", () => {
-  const ctx = canvas.getContext("2d")!;
-  ctx?.clearRect(originX, originY, canvas.width, canvas.height);
+  lines.length = empty;
+  currentLine.length = empty;
+  canvas.dispatchEvent(new Event("drawing-changed"));
 });
 app.append(clearButton);
+
+//Step 3
+interface Point {
+  x: number;
+  y: number;
+}
+let currentLine: Point[] = [];
+const lines: Point[][] = [];
+const firstIndex = 0;
+
+canvas.addEventListener("mousedown", () => {
+  isDrawing = true;
+  currentLine = [];
+});
+
+canvas.addEventListener("mouseup", () => {
+  isDrawing = false;
+  if (currentLine.length > empty) {
+    lines.push(currentLine);
+  }
+  canvas.dispatchEvent(new Event("drawing-changed"));
+});
+
+canvas.addEventListener("mousemove", (e) => {
+  if (isDrawing) {
+    const point: Point = { x: e.offsetX, y: e.offsetY };
+    currentLine.push(point);
+    canvas.dispatchEvent(new Event("drawing-changed"));
+  }
+});
+
+canvas.addEventListener("drawing-changed", () => {
+  const ctx = canvas.getContext("2d")!;
+  ctx.clearRect(originX, originY, canvas.width, canvas.height);
+  for (const line of lines) {
+    if (line.length === empty) continue;
+    ctx.beginPath();
+    ctx.moveTo(line[firstIndex].x, line[firstIndex].y);
+    for (const point of line) {
+      ctx.lineTo(point.x, point.y);
+    }
+    ctx.stroke();
+  }
+  if (isDrawing && currentLine.length > empty) {
+    ctx.beginPath();
+    ctx.moveTo(currentLine[firstIndex].x, currentLine[firstIndex].y);
+    for (const point of currentLine) {
+      ctx.lineTo(point.x, point.y);
+    }
+    ctx.stroke();
+  }
+});
