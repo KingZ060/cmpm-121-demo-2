@@ -32,6 +32,7 @@ const originY = 0;
 clearButton.addEventListener("click", () => {
   lines.length = empty;
   currentLine.length = empty;
+  redoStack.length = empty;
   canvas.dispatchEvent(new Event("drawing-changed"));
 });
 app.append(clearButton);
@@ -87,3 +88,32 @@ canvas.addEventListener("drawing-changed", () => {
     ctx.stroke();
   }
 });
+
+//Step 4
+const redoStack: Point[][] = [];
+
+const undoButton = document.createElement("button");
+undoButton.innerHTML = "Undo";
+undoButton.addEventListener("click", () => {
+  if (lines.length > empty) {
+    const lastLine = lines.pop();
+    if (lastLine) {
+      redoStack.push(lastLine);
+    }
+    canvas.dispatchEvent(new Event("drawing-changed"));
+  }
+});
+app.append(undoButton);
+
+const redoButton = document.createElement("button");
+redoButton.innerHTML = "Redo";
+redoButton.addEventListener("click", () => {
+  if (redoStack.length > empty) {
+    const lastRemovedLine = redoStack.pop();
+    if (lastRemovedLine) {
+      lines.push(lastRemovedLine);
+    }
+    canvas.dispatchEvent(new Event("drawing-changed"));
+  }
+});
+app.append(redoButton);
