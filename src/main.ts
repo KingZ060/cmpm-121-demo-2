@@ -20,6 +20,9 @@ const empty = 0;
 const lineBreak = document.createElement("br");
 app.append(lineBreak);
 
+const THIN = 2;
+const THICK = 10;
+
 const clearButton = document.createElement("button");
 clearButton.innerHTML = "Clear";
 const originX = 0;
@@ -70,9 +73,11 @@ interface Command {
 }
 class MarkerLine implements Command {
   private points: Point[] = [];
+  private thickness: number;
 
-  constructor(initialPoint: Point) {
+  constructor(initialPoint: Point, thickness: number) {
     this.points.push(initialPoint);
+    this.thickness = thickness;
   }
 
   drag(x: number, y: number): void {
@@ -81,6 +86,7 @@ class MarkerLine implements Command {
 
   display(ctx: CanvasRenderingContext2D): void {
     if (this.points.length === empty || !ctx) return;
+    ctx.lineWidth = this.thickness;
     ctx.beginPath();
     ctx.moveTo(this.points[firstIndex].x, this.points[firstIndex].y);
     for (const point of this.points) {
@@ -95,7 +101,10 @@ const redoStack: Command[] = [];
 let currentLine: MarkerLine | null = null;
 canvas.addEventListener("mousedown", (e) => {
   isDrawing = true;
-  const newLine = new MarkerLine({ x: e.offsetX, y: e.offsetY });
+  const newLine = new MarkerLine(
+    { x: e.offsetX, y: e.offsetY },
+    currentThickness
+  );
   lines.push(newLine);
   currentLine = newLine;
 });
@@ -122,3 +131,33 @@ canvas.addEventListener("drawing-changed", () => {
     command.display(ctx);
   }
 });
+
+const toolReference = document.createElement("div");
+let currentThickness: number = THIN;
+toolReference.classList.add("thin");
+
+const thinButton = document.createElement("button");
+thinButton.innerHTML = "🖌️ Thin Marker";
+thinButton.addEventListener("click", () => {
+  toolReference.classList.remove("thick");
+  toolReference.classList.add("thin");
+  updateThickness();
+});
+app.append(thinButton);
+
+const thickButton = document.createElement("button");
+thickButton.innerHTML = "🖌️ Thick Marker";
+thickButton.addEventListener("click", () => {
+  toolReference.classList.remove("thin");
+  toolReference.classList.add("thick");
+  updateThickness();
+});
+app.append(thickButton);
+
+function updateThickness() {
+  if (toolReference.classList.contains("thin")) {
+    currentThickness = THIN;
+  } else if (toolReference.classList.contains("thick")) {
+    currentThickness = THICK;
+  }
+}
