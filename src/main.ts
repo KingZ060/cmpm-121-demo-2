@@ -102,20 +102,30 @@ const lines: Command[] = [];
 const redoStack: Command[] = [];
 let currentLine: MarkerLine | null = null;
 canvas.addEventListener("mousedown", (e) => {
-  isDrawing = true;
-  const newLine = new MarkerLine(
-    { x: e.offsetX, y: e.offsetY },
-    currentThickness
-  );
-  lines.push(newLine);
-  currentLine = newLine;
+  if (currentSticker) {
+    const newSticker = new Sticker(e.offsetX, e.offsetY, currentSticker);
+    lines.push(newSticker);
+    currentStickerCommand = newSticker;
+  } else {
+    isDrawing = true;
+    const newLine = new MarkerLine(
+      { x: e.offsetX, y: e.offsetY },
+      currentThickness
+    );
+    lines.push(newLine);
+    currentLine = newLine;
+  }
 });
 
 canvas.addEventListener("mouseup", () => {
-  isDrawing = false;
-  if (currentLine) {
-    canvas.dispatchEvent(new Event("drawing-changed"));
-    currentLine = null;
+  if (currentStickerCommand) {
+    currentStickerCommand = null;
+  } else {
+    isDrawing = false;
+    if (currentLine) {
+      canvas.dispatchEvent(new Event("drawing-changed"));
+      currentLine = null;
+    }
   }
 });
 
@@ -125,7 +135,9 @@ let lastMouseY: number | null = null;
 canvas.addEventListener("mousemove", (e) => {
   lastMouseX = e.offsetX;
   lastMouseY = e.offsetY;
-  if (isDrawing && currentLine instanceof MarkerLine) {
+  if (currentSticker && currentStickerCommand) {
+    currentStickerCommand.drag(e.offsetX, e.offsetY);
+  } else if (isDrawing && currentLine instanceof MarkerLine) {
     currentLine.drag(e.offsetX, e.offsetY);
   }
   canvas.dispatchEvent(new Event("drawing-changed"));
@@ -133,15 +145,18 @@ canvas.addEventListener("mousemove", (e) => {
 
 canvas.addEventListener("mouseenter", () => {
   inCanvas = true;
-  canvas.dispatchEvent(new Event("drawing-changed"));
+  canvas.dispatchEvent(new Event("tool-moved"));
 });
 
 canvas.addEventListener("mouseout", () => {
   inCanvas = false;
-  canvas.dispatchEvent(new Event("drawing-changed"));
+  canvas.dispatchEvent(new Event("tool-moved"));
 });
 
-canvas.addEventListener("drawing-changed", () => {
+canvas.addEventListener("drawing-changed", redraw);
+canvas.addEventListener("tool-moved", redraw);
+
+function redraw() {
   const ctx = canvas.getContext("2d")!;
   ctx.clearRect(originX, originY, canvas.width, canvas.height);
   for (const command of lines) {
@@ -149,13 +164,15 @@ canvas.addEventListener("drawing-changed", () => {
   }
   if (!isDrawing && inCanvas) {
     ctx.beginPath();
-    if (!isDrawing && lastMouseX !== null && lastMouseY !== null) {
+    if (currentSticker && lastMouseX !== null && lastMouseY !== null) {
+      ctx.fillText(currentSticker, lastMouseX, lastMouseY);
+    } else if (!currentSticker && lastMouseX !== null && lastMouseY !== null) {
       ctx.beginPath();
       ctx.arc(lastMouseX, lastMouseY, currentThickness / 2, 0, Math.PI * 2);
       ctx.fill();
     }
   }
-});
+}
 
 const toolReference = document.createElement("div");
 let currentThickness: number = THIN;
@@ -166,7 +183,9 @@ thinButton.innerHTML = "🖌️ Thin Marker";
 thinButton.addEventListener("click", () => {
   toolReference.classList.remove("thick");
   toolReference.classList.add("thin");
+  currentSticker = null;
   updateThickness();
+  canvas.dispatchEvent(new Event("tool-moved"));
 });
 app.append(thinButton);
 
@@ -175,9 +194,13 @@ thickButton.innerHTML = "🖌️ Thick Marker";
 thickButton.addEventListener("click", () => {
   toolReference.classList.remove("thin");
   toolReference.classList.add("thick");
+  currentSticker = null;
   updateThickness();
+  canvas.dispatchEvent(new Event("tool-moved"));
 });
 app.append(thickButton);
+const lineBreakss = document.createElement("br");
+app.append(lineBreakss);
 
 function updateThickness() {
   if (toolReference.classList.contains("thin")) {
@@ -185,4 +208,39 @@ function updateThickness() {
   } else if (toolReference.classList.contains("thick")) {
     currentThickness = THICK;
   }
+}
+
+class Sticker implements Command {
+  x: number;
+  y: number;
+  sticker: string;
+
+  constructor(x: number, y: number, sticker: string) {
+    this.x = x;
+    this.y = y;
+    this.sticker = sticker;
+  }
+
+  drag(x: number, y: number): void {
+    this.x = x;
+    this.y = y;
+  }
+
+  display(ctx: CanvasRenderingContext2D): void {
+    ctx.fillText(this.sticker, this.x, this.y);
+  }
+}
+
+let currentSticker: string | null = null;
+let currentStickerCommand: Sticker | null = null;
+
+const stickerList = ["😀", "😺", "👍"];
+for (const sticker of stickerList) {
+  const stickerButton = document.createElement("button");
+  stickerButton.innerHTML = sticker;
+  stickerButton.addEventListener("click", () => {
+    currentSticker = sticker;
+    canvas.dispatchEvent(new Event("tool-moved"));
+  });
+  app.append(stickerButton);
 }
