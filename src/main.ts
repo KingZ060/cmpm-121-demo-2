@@ -13,9 +13,11 @@ canvas.height = 256;
 canvas.style.border = "thin solid black";
 canvas.style.borderRadius = "10px";
 canvas.style.boxShadow = "5px 5px 10px rgba(0, 0, 0, 0.5)";
+canvas.style.cursor = "none";
 app.append(canvas);
 
 let isDrawing = false;
+let inCanvas = false;
 const empty = 0;
 const lineBreak = document.createElement("br");
 app.append(lineBreak);
@@ -117,11 +119,26 @@ canvas.addEventListener("mouseup", () => {
   }
 });
 
+let lastMouseX: number | null = null;
+let lastMouseY: number | null = null;
+
 canvas.addEventListener("mousemove", (e) => {
+  lastMouseX = e.offsetX;
+  lastMouseY = e.offsetY;
   if (isDrawing && currentLine instanceof MarkerLine) {
     currentLine.drag(e.offsetX, e.offsetY);
-    canvas.dispatchEvent(new Event("drawing-changed"));
   }
+  canvas.dispatchEvent(new Event("drawing-changed"));
+});
+
+canvas.addEventListener("mouseenter", () => {
+  inCanvas = true;
+  canvas.dispatchEvent(new Event("drawing-changed"));
+});
+
+canvas.addEventListener("mouseout", () => {
+  inCanvas = false;
+  canvas.dispatchEvent(new Event("drawing-changed"));
 });
 
 canvas.addEventListener("drawing-changed", () => {
@@ -129,6 +146,14 @@ canvas.addEventListener("drawing-changed", () => {
   ctx.clearRect(originX, originY, canvas.width, canvas.height);
   for (const command of lines) {
     command.display(ctx);
+  }
+  if (!isDrawing && inCanvas) {
+    ctx.beginPath();
+    if (!isDrawing && lastMouseX !== null && lastMouseY !== null) {
+      ctx.beginPath();
+      ctx.arc(lastMouseX, lastMouseY, currentThickness / 2, 0, Math.PI * 2);
+      ctx.fill();
+    }
   }
 });
 
