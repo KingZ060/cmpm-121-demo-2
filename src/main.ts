@@ -262,20 +262,6 @@ class Sticker implements Command {
 let currentSticker: string | null = null;
 let currentStickerCommand: Sticker | null = null;
 
-const stickerList = ["😀", "😺", "👍"];
-for (const sticker of stickerList) {
-  const stickerButton = document.createElement("button");
-  stickerButton.innerHTML = sticker;
-  stickerButton.addEventListener("click", () => {
-    currentSticker = sticker;
-    canvas.dispatchEvent(new Event("tool-moved"));
-  });
-  app.append(stickerButton);
-}
-
-const lineBreaksss = document.createElement("br");
-app.append(lineBreaksss);
-
 const customStickerButton = document.createElement("button");
 customStickerButton.innerHTML = "Create Custom Sticker";
 customStickerButton.addEventListener("click", () => {
@@ -292,3 +278,17 @@ customStickerButton.addEventListener("click", () => {
   }
 });
 app.append(customStickerButton);
+
+const lineBreaksss = document.createElement("br");
+app.append(lineBreaksss);
+
+const stickerList = ["😀", "😺", "👍"];
+for (const sticker of stickerList) {
+  const stickerButton = document.createElement("button");
+  stickerButton.innerHTML = sticker;
+  stickerButton.addEventListener("click", () => {
+    currentSticker = sticker;
+    canvas.dispatchEvent(new Event("tool-moved"));
+  });
+  app.append(stickerButton);
+}
