@@ -97,10 +97,12 @@ interface Command {
 class MarkerLine implements Command {
   private points: Point[] = [];
   private thickness: number;
+  private color = `#000000`;
 
   constructor(initialPoint: Point, thickness: number) {
     this.points.push(initialPoint);
     this.thickness = thickness;
+    this.color = CURRENT_COLOR;
   }
 
   drag(x: number, y: number): void {
@@ -110,6 +112,7 @@ class MarkerLine implements Command {
   display(ctx: CanvasRenderingContext2D): void {
     if (this.points.length === empty || !ctx) return;
     ctx.lineWidth = this.thickness;
+    ctx.strokeStyle = this.color;
     ctx.beginPath();
     ctx.moveTo(this.points[firstIndex].x, this.points[firstIndex].y);
     for (const point of this.points) {
@@ -124,7 +127,12 @@ const redoStack: Command[] = [];
 let currentLine: MarkerLine | null = null;
 canvas.addEventListener("mousedown", (e) => {
   if (currentSticker) {
-    const newSticker = new Sticker(e.offsetX, e.offsetY, currentSticker);
+    const newSticker = new Sticker(
+      e.offsetX,
+      e.offsetY,
+      currentSticker,
+      CURRENT_ROTATION
+    );
     lines.push(newSticker);
     currentStickerCommand = newSticker;
   } else {
@@ -178,6 +186,7 @@ canvas.addEventListener("drawing-changed", redraw);
 canvas.addEventListener("tool-moved", redraw);
 
 const half = 2;
+const counterclockwise = 180;
 function redraw() {
   const ctx = canvas.getContext("2d")!;
   ctx.clearRect(originX, originY, canvas.width, canvas.height);
@@ -187,9 +196,14 @@ function redraw() {
   if (!isDrawing && inCanvas) {
     ctx.beginPath();
     if (currentSticker && lastMouseX !== null && lastMouseY !== null) {
-      ctx.fillText(currentSticker, lastMouseX, lastMouseY);
+      ctx.save();
+      ctx.translate(lastMouseX, lastMouseY);
+      ctx.rotate((CURRENT_ROTATION * Math.PI) / counterclockwise);
+      ctx.fillText(currentSticker, empty, empty);
+      ctx.restore();
     } else if (!currentSticker && lastMouseX !== null && lastMouseY !== null) {
       ctx.beginPath();
+      ctx.fillStyle = CURRENT_COLOR;
       ctx.arc(
         lastMouseX,
         lastMouseY,
@@ -227,8 +241,35 @@ thickButton.addEventListener("click", () => {
   canvas.dispatchEvent(new Event("tool-moved"));
 });
 app.append(thickButton);
-const lineBreakss = document.createElement("br");
-app.append(lineBreakss);
+
+const sliderContainer = document.createElement("div");
+sliderContainer.style.display = "flex";
+sliderContainer.style.justifyContent = "center";
+
+let CURRENT_COLOR = `#000000`;
+const colorDisplay = document.createElement("div");
+colorDisplay.style.width = "15px";
+colorDisplay.style.height = "15px";
+colorDisplay.style.border = "1px solid black";
+colorDisplay.style.marginTop = "1px";
+colorDisplay.style.borderRadius = "5px";
+colorDisplay.style.backgroundColor = CURRENT_COLOR;
+sliderContainer.append(colorDisplay);
+app.appendChild(sliderContainer);
+
+const colorSlider = document.createElement("input");
+colorSlider.type = "range";
+colorSlider.min = "0";
+colorSlider.max = "360";
+colorSlider.value = "0";
+colorSlider.id = "slider";
+sliderContainer.appendChild(colorSlider);
+
+colorSlider.addEventListener("input", (event) => {
+  const hue = (event.target as HTMLInputElement).value;
+  CURRENT_COLOR = `hsl(${hue}, 100%, 50%)`;
+  colorDisplay.style.backgroundColor = CURRENT_COLOR;
+});
 
 function updateThickness() {
   if (toolReference.classList.contains("thin")) {
@@ -239,14 +280,16 @@ function updateThickness() {
 }
 
 class Sticker implements Command {
-  x: number;
-  y: number;
-  sticker: string;
+  private x: number;
+  private y: number;
+  private sticker: string;
+  private rotation: number;
 
-  constructor(x: number, y: number, sticker: string) {
+  constructor(x: number, y: number, sticker: string, rotation: number) {
     this.x = x;
     this.y = y;
     this.sticker = sticker;
+    this.rotation = rotation;
   }
 
   drag(x: number, y: number): void {
@@ -255,7 +298,11 @@ class Sticker implements Command {
   }
 
   display(ctx: CanvasRenderingContext2D): void {
-    ctx.fillText(this.sticker, this.x, this.y);
+    ctx.save();
+    ctx.translate(this.x, this.y);
+    ctx.rotate((this.rotation * Math.PI) / counterclockwise);
+    ctx.fillText(this.sticker, empty, empty);
+    ctx.restore();
   }
 }
 
@@ -279,8 +326,28 @@ customStickerButton.addEventListener("click", () => {
 });
 app.append(customStickerButton);
 
-const lineBreaksss = document.createElement("br");
-app.append(lineBreaksss);
+const rotationContainer = document.createElement("div");
+rotationContainer.style.display = "flex";
+rotationContainer.style.justifyContent = "center";
+
+let CURRENT_ROTATION = 0;
+const rotationDisplay = document.createElement("div");
+rotationDisplay.innerHTML = `${CURRENT_ROTATION}%↻`;
+rotationContainer.append(rotationDisplay);
+app.appendChild(rotationContainer);
+
+const rotationSlider = document.createElement("input");
+rotationSlider.type = "range";
+rotationSlider.min = "0";
+rotationSlider.max = "360";
+rotationSlider.value = "0";
+rotationSlider.id = "slider";
+rotationContainer.appendChild(rotationSlider);
+
+rotationSlider.addEventListener("input", (event) => {
+  CURRENT_ROTATION = parseInt((event.target as HTMLInputElement).value);
+  rotationDisplay.innerHTML = `${CURRENT_ROTATION}%↻`;
+});
 
 const stickerList = ["😀", "😺", "👍"];
 for (const sticker of stickerList) {
