@@ -67,6 +67,27 @@ redoButton.addEventListener("click", () => {
   }
 });
 app.append(redoButton);
+
+const EXPORT_SIZE = 1024;
+const SCALE_SIZE = 4;
+const exportButton = document.createElement("button");
+exportButton.innerHTML = "Export";
+exportButton.addEventListener("click", () => {
+  const exportCanvas = document.createElement("canvas");
+  exportCanvas.width = EXPORT_SIZE;
+  exportCanvas.height = EXPORT_SIZE;
+  const ctx = exportCanvas.getContext("2d")!;
+  ctx.scale(SCALE_SIZE, SCALE_SIZE);
+  for (const command of lines) {
+    command.display(ctx);
+  }
+  const anchor = document.createElement("a");
+  anchor.href = canvas.toDataURL("image/png");
+  anchor.download = "sketchpad.png";
+  anchor.click();
+});
+app.append(exportButton);
+
 const lineBreaks = document.createElement("br");
 app.append(lineBreaks);
 
@@ -156,6 +177,7 @@ canvas.addEventListener("mouseout", () => {
 canvas.addEventListener("drawing-changed", redraw);
 canvas.addEventListener("tool-moved", redraw);
 
+const half = 2;
 function redraw() {
   const ctx = canvas.getContext("2d")!;
   ctx.clearRect(originX, originY, canvas.width, canvas.height);
@@ -168,7 +190,13 @@ function redraw() {
       ctx.fillText(currentSticker, lastMouseX, lastMouseY);
     } else if (!currentSticker && lastMouseX !== null && lastMouseY !== null) {
       ctx.beginPath();
-      ctx.arc(lastMouseX, lastMouseY, currentThickness / 2, 0, Math.PI * 2);
+      ctx.arc(
+        lastMouseX,
+        lastMouseY,
+        currentThickness / half,
+        empty,
+        Math.PI * half
+      );
       ctx.fill();
     }
   }
