@@ -244,3 +244,23 @@ for (const sticker of stickerList) {
   });
   app.append(stickerButton);
 }
+
+const lineBreaksss = document.createElement("br");
+app.append(lineBreaksss);
+
+const customStickerButton = document.createElement("button");
+customStickerButton.innerHTML = "Create Custom Sticker";
+customStickerButton.addEventListener("click", () => {
+  const customSticker = prompt("Enter your custom sticker", "");
+  if (customSticker && customSticker.trim() !== "") {
+    stickerList.push(customSticker);
+    const stickerButton = document.createElement("button");
+    stickerButton.innerHTML = customSticker;
+    stickerButton.addEventListener("click", () => {
+      currentSticker = customSticker;
+      canvas.dispatchEvent(new Event("tool-moved"));
+    });
+    app.append(stickerButton);
+  }
+});
+app.append(customStickerButton);
