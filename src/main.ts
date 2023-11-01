@@ -131,7 +131,7 @@ canvas.addEventListener("mousedown", (e) => {
       e.offsetX,
       e.offsetY,
       currentSticker,
-      CURRENT_ROTATION
+      CURRENT_ROTATION,
     );
     lines.push(newSticker);
     currentStickerCommand = newSticker;
@@ -139,7 +139,7 @@ canvas.addEventListener("mousedown", (e) => {
     isDrawing = true;
     const newLine = new MarkerLine(
       { x: e.offsetX, y: e.offsetY },
-      currentThickness
+      currentThickness,
     );
     lines.push(newLine);
     currentLine = newLine;
@@ -209,7 +209,7 @@ function redraw() {
         lastMouseY,
         currentThickness / half,
         empty,
-        Math.PI * half
+        Math.PI * half,
       );
       ctx.fill();
     }
